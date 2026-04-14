@@ -1,201 +1,222 @@
-import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { Link, Route, Routes } from 'react-router-dom'
 import { ordersApi } from '../../api/orders'
-import { reviewsApi } from '../../api/reviews'
+import { CustomerOrderDetailPage } from './CustomerOrderDetailPage'
+import { CustomerSavedPage } from './CustomerSavedPage'
+import { DashboardLayout } from '../../components/layout/DashboardLayout'
+import { ReviewOrderModal } from '../../components/marketplace/ReviewOrderModal'
+import { StatePanel } from '../../components/marketplace/StatePanel'
 import { Badge, orderStatusBadge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
-import { DashboardLayout } from '../../components/layout/DashboardLayout'
-import { Modal } from '../../components/ui/Modal'
 import { Skeleton } from '../../components/ui/Skeleton'
-import { StarRating } from '../../components/ui/StarRating'
 import { useAuth } from '../../context/AuthContext'
+import { useFavorites } from '../../hooks/useFavorites'
+import { buildOrderNotifications, formatShortDate } from '../../lib/marketplace'
 import type { Order } from '../../types'
 
-function ReviewModal({
-  order,
-  onClose,
-  onSuccess,
-}: {
-  order: Order
-  onClose: () => void
-  onSuccess: () => void
-}) {
-  const [rating, setRating] = useState(5)
-  const [comment, setComment] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!comment.trim()) { setError('Please write a review.'); return }
-    setLoading(true)
-    try {
-      await reviewsApi.create({ orderId: order.id, rating, comment })
-      onSuccess()
-      onClose()
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } }
-      setError(e?.response?.data?.message ?? 'Failed to submit review.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <Modal open onClose={onClose} title="Leave a Review">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="p-3 bg-surface-3 rounded-lg">
-          <p className="text-sm text-text-secondary">{order.serviceTitle}</p>
-        </div>
-        <div>
-          <p className="text-sm font-medium text-text-secondary mb-2">Rating</p>
-          <StarRating rating={rating} interactive onChange={setRating} size="lg" />
-        </div>
-        <div>
-          <label className="text-sm font-medium text-text-secondary block mb-1.5">Your review</label>
-          <textarea
-            value={comment}
-            onChange={(e) => { setComment(e.target.value); setError('') }}
-            placeholder="Share your experience..."
-            rows={4}
-            className="w-full bg-surface-2 border border-border rounded-md px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-brand/60 focus:border-brand-dark transition-colors resize-none"
-          />
-        </div>
-        {error && <p className="text-xs text-status-error">{error}</p>}
-        <div className="flex gap-3 pt-2">
-          <Button variant="secondary" fullWidth onClick={onClose} type="button">Cancel</Button>
-          <Button fullWidth loading={loading} type="submit">Submit Review</Button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-export function CustomerDashboard() {
+function CustomerOrdersPage() {
   const { user } = useAuth()
+  const { favoritesCount } = useFavorites()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [reviewOrder, setReviewOrder] = useState<Order | null>(null)
 
-  const fetchOrders = () => {
-    ordersApi.getAll().then(setOrders).finally(() => setLoading(false))
+  const loadOrders = () => {
+    setLoading(true)
+    setError('')
+
+    ordersApi
+      .getAll()
+      .then(setOrders)
+      .catch(() => setError('Your order list could not be loaded right now.'))
+      .finally(() => setLoading(false))
   }
 
-  useEffect(() => { fetchOrders() }, [])
+  useEffect(() => {
+    loadOrders()
+  }, [])
+
+  const notifications = orders
+    .flatMap((order) => buildOrderNotifications(order))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5)
 
   const stats = {
     total: orders.length,
-    active: orders.filter((o) => o.status === 'Pending' || o.status === 'InProgress').length,
-    completed: orders.filter((o) => o.status === 'Completed').length,
+    active: orders.filter((order) => order.status === 'Pending' || order.status === 'InProgress').length,
+    completed: orders.filter((order) => order.status === 'Completed').length,
+    saved: favoritesCount,
   }
 
   return (
     <DashboardLayout
       title={`Welcome, ${user?.fullName.split(' ')[0]}`}
-      subtitle="Track and manage your service orders"
+      subtitle="Track delivery progress, recent updates, and the next services on your shortlist."
     >
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 mb-8">
         {[
-          { label: 'Total Orders', value: stats.total, color: 'text-text-primary' },
-          { label: 'Active', value: stats.active, color: 'text-status-info' },
-          { label: 'Completed', value: stats.completed, color: 'text-status-success' },
-        ].map((s) => (
-          <div key={s.label} className="bg-surface-2 border border-border rounded-xl p-4">
-            <p className="text-xs text-text-muted">{s.label}</p>
-            <p className={`text-2xl font-bold mt-1 ${s.color}`}>{s.value}</p>
+          { label: 'Total orders', value: stats.total, description: 'All marketplace orders' },
+          { label: 'In flight', value: stats.active, description: 'Pending or in progress' },
+          { label: 'Completed', value: stats.completed, description: 'Ready for review or archived' },
+          { label: 'Saved services', value: stats.saved, description: 'Shortlisted for later' },
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-2xl border border-border bg-surface-2 p-4">
+            <p className="text-xs uppercase tracking-wider text-text-muted">{stat.label}</p>
+            <p className="mt-2 text-2xl font-bold text-text-primary">{stat.value}</p>
+            <p className="mt-1 text-xs text-text-muted">{stat.description}</p>
           </div>
         ))}
       </div>
 
-      {/* Orders table */}
-      <div className="bg-surface-2 border border-border rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-sm font-semibold text-text-primary">My Orders</h2>
-        </div>
-
-        {loading ? (
-          <div className="p-5 space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 rounded-lg" />
-            ))}
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="py-16 text-center">
-            <div className="w-12 h-12 rounded-full bg-surface-3 flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <section className="rounded-3xl border border-border bg-surface-2 p-5">
+          <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-text-muted">Orders</p>
+              <h2 className="mt-2 text-xl font-bold tracking-tight text-text-primary">Current work and recent deliveries</h2>
             </div>
-            <p className="text-sm text-text-muted">No orders yet. Browse the marketplace to get started!</p>
+            <Link to="/services">
+              <Button variant="ghost">Browse services</Button>
+            </Link>
           </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {orders.map((order, i) => (
-              <motion.div
-                key={order.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-surface-3 transition-colors"
-              >
-                {/* Service image */}
-                <div className="w-12 h-12 rounded-lg bg-surface-3 flex-shrink-0 overflow-hidden">
-                  {order.serviceImage ? (
-                    <img src={order.serviceImage} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <svg className="w-5 h-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+
+          {loading ? (
+            <div className="mt-5 space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton key={index} className="h-32 rounded-2xl" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="mt-5">
+              <StatePanel
+                compact
+                tone="error"
+                title="Orders unavailable"
+                description={error}
+                action={<Button onClick={loadOrders}>Try again</Button>}
+              />
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="mt-5">
+              <StatePanel
+                title="No orders yet"
+                description="Browse the marketplace, save strong options, and place your first order when the scope feels right."
+                action={
+                  <Link to="/services">
+                    <Button>Explore services</Button>
+                  </Link>
+                }
+              />
+            </div>
+          ) : (
+            <div className="mt-5 space-y-4">
+              {orders.map((order) => (
+                <article key={order.id} className="rounded-2xl border border-border bg-surface-1 p-4">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="flex gap-4 min-w-0">
+                      <div className="h-16 w-16 overflow-hidden rounded-2xl bg-surface-3 flex-shrink-0">
+                        {order.serviceImage ? (
+                          <img src={order.serviceImage} alt={order.serviceTitle} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center text-text-muted">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-base font-semibold text-text-primary">{order.serviceTitle}</p>
+                          <Badge variant={orderStatusBadge(order.status)}>{order.status}</Badge>
+                        </div>
+                        <p className="mt-1 text-sm text-text-muted">
+                          by {order.vendorName} · placed {formatShortDate(order.createdAt)}
+                        </p>
+                        <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+                          {order.notes || 'No additional brief notes were attached to this order.'}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-text-primary truncate">{order.serviceTitle}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-xs text-text-muted">by {order.vendorName}</p>
-                    <span className="text-text-muted text-xs">&middot;</span>
-                    <p className="text-xs text-text-muted">{new Date(order.createdAt).toLocaleDateString()}</p>
+                    <div className="flex flex-col items-start md:items-end gap-3">
+                      <p className="text-lg font-bold text-text-primary">${order.totalPrice.toFixed(2)}</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Link to={`/customer/orders/${order.id}`}>
+                          <Button variant="secondary" size="sm">View timeline</Button>
+                        </Link>
+                        {order.status === 'Completed' && !order.hasReview && (
+                          <Button size="sm" onClick={() => setReviewOrder(order)}>Leave review</Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
 
-                {/* Status & price */}
-                <div className="flex items-center gap-4 flex-shrink-0">
-                  <Badge variant={orderStatusBadge(order.status)}>{order.status}</Badge>
-                  <p className="text-sm font-bold text-text-primary w-20 text-right">
-                    ${order.totalPrice.toFixed(2)}
-                  </p>
-
-                  {/* Review button */}
-                  {order.status === 'Completed' && !order.hasReview && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setReviewOrder(order)}
-                    >
-                      Review
-                    </Button>
-                  )}
-                  {order.status === 'Completed' && order.hasReview && (
-                    <span className="text-xs text-status-success">Reviewed</span>
-                  )}
-                </div>
-              </motion.div>
-            ))}
+        <section className="rounded-3xl border border-border bg-surface-2 p-5">
+          <div className="border-b border-border pb-4">
+            <p className="text-xs uppercase tracking-wider text-text-muted">Notifications</p>
+            <h2 className="mt-2 text-xl font-bold tracking-tight text-text-primary">Important order updates</h2>
           </div>
-        )}
+
+          {loading ? (
+            <div className="mt-5 space-y-3">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton key={index} className="h-24 rounded-2xl" />
+              ))}
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="mt-5">
+              <StatePanel
+                compact
+                title="No updates yet"
+                description="When order activity starts, status changes and delivery alerts will be summarized here."
+              />
+            </div>
+          ) : (
+            <div className="mt-5 space-y-3">
+              {notifications.map((notification) => (
+                <div key={notification.id} className="rounded-2xl border border-border bg-surface-1 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-text-primary">{notification.title}</p>
+                    <span className="text-xs text-text-muted">{formatShortDate(notification.createdAt)}</span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-text-muted">{notification.body}</p>
+                  {notification.orderId && (
+                    <Link to={`/customer/orders/${notification.orderId}`} className="mt-3 inline-flex text-sm font-medium text-brand hover:text-brand-hover">
+                      Open order
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       {reviewOrder && (
-        <ReviewModal
+        <ReviewOrderModal
           order={reviewOrder}
           onClose={() => setReviewOrder(null)}
-          onSuccess={fetchOrders}
+          onSuccess={loadOrders}
         />
       )}
     </DashboardLayout>
+  )
+}
+
+export function CustomerDashboard() {
+  return (
+    <Routes>
+      <Route index element={<CustomerOrdersPage />} />
+      <Route path="saved" element={<CustomerSavedPage />} />
+      <Route path="orders/:id" element={<CustomerOrderDetailPage />} />
+    </Routes>
   )
 }

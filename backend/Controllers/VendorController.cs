@@ -23,6 +23,7 @@ public class VendorController : ControllerBase
     {
         var services = await _db.Services
             .Include(s => s.Category)
+            .Include(s => s.Vendor)
             .Include(s => s.Images)
             .Include(s => s.Reviews)
             .Include(s => s.Orders)
@@ -44,6 +45,7 @@ public class VendorController : ControllerBase
                 CategoryName = s.Category.Name,
                 VendorId = s.VendorId,
                 VendorName = "",
+                VendorBio = s.Vendor.Bio,
                 ImageUrls = s.Images.OrderByDescending(i => i.IsPrimary).Select(i => i.Url).ToList()
             })
             .ToListAsync();

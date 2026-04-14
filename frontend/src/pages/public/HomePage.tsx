@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { categoriesApi } from '../../api/categories'
 import { servicesApi } from '../../api/services'
+import { MarketplaceServiceCard } from '../../components/marketplace/MarketplaceServiceCard'
+import { StatePanel } from '../../components/marketplace/StatePanel'
 import { ServiceCardSkeleton } from '../../components/ui/Skeleton'
-import { StarRating } from '../../components/ui/StarRating'
 import type { Category, Service } from '../../types'
 
 const stagger = {
@@ -16,76 +17,32 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 }
 
-function ServiceCard({ service }: { service: Service }) {
-  return (
-    <motion.div variants={fadeUp}>
-      <Link
-        to={`/services/${service.id}`}
-        className="group block bg-surface-2 border border-border rounded-xl overflow-hidden hover:border-border-strong hover:shadow-card-hover transition-all duration-200"
-      >
-        <div className="relative h-44 bg-surface-3 overflow-hidden">
-          {service.imageUrls[0] ? (
-            <img
-              src={service.imageUrls[0]}
-              alt={service.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-text-muted">
-              <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-          )}
-          <div className="absolute top-2 left-2">
-            <span className="px-2 py-0.5 bg-surface-0/80 backdrop-blur-sm text-xs text-text-secondary rounded-full border border-border">
-              {service.categoryName}
-            </span>
-          </div>
-        </div>
-        <div className="p-4">
-          <h3 className="font-semibold text-text-primary text-sm leading-snug line-clamp-2 group-hover:text-brand transition-colors">
-            {service.title}
-          </h3>
-          <p className="text-xs text-text-muted mt-1">{service.vendorName}</p>
-          <div className="flex items-center gap-1.5 mt-2">
-            <StarRating rating={service.averageRating} size="sm" />
-            <span className="text-xs text-text-muted">
-              {service.averageRating > 0
-                ? `${service.averageRating.toFixed(1)} (${service.totalReviews})`
-                : 'No reviews yet'}
-            </span>
-          </div>
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-            <div>
-              <p className="text-xs text-text-muted">Starting at</p>
-              <p className="text-base font-bold text-brand">${service.price.toFixed(2)}</p>
-            </div>
-            {service.deliveryTime && (
-              <span className="text-xs text-text-muted">{service.deliveryTime}</span>
-            )}
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  )
-}
-
 export function HomePage() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState<Category[]>([])
   const [topServices, setTopServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
-  useEffect(() => {
+  const loadHighlights = () => {
+    setLoading(true)
+    setError('')
+
     Promise.all([
       categoriesApi.getAll(),
       servicesApi.getAll({ pageSize: 8, sortBy: 'rating' }),
-    ]).then(([cats, svc]) => {
-      setCategories(cats.slice(0, 6))
-      setTopServices(svc.items)
-    }).finally(() => setLoading(false))
+    ])
+      .then(([cats, svc]) => {
+        setCategories(cats.slice(0, 6))
+        setTopServices(svc.items)
+      })
+      .catch(() => setError('The marketplace highlights are taking longer than expected to load.'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadHighlights()
   }, [])
 
   const handleSearch = (e: React.FormEvent) => {
@@ -169,31 +126,41 @@ export function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {categories.map((cat, i) => (
-            <motion.div
-              key={cat.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.35 }}
-            >
-              <Link
-                to={`/services?categoryId=${cat.id}`}
-                className="group flex flex-col items-center gap-2.5 p-4 bg-surface-2 border border-border rounded-xl hover:border-brand/40 hover:bg-surface-3 transition-all duration-200 text-center"
+        {error ? (
+          <StatePanel
+            compact
+            tone="error"
+            title="Marketplace categories are unavailable"
+            description={error}
+            action={<button onClick={loadHighlights} className="text-sm font-medium text-brand hover:text-brand-hover">Retry</button>}
+          />
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {categories.map((cat, i) => (
+              <motion.div
+                key={cat.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.35 }}
               >
-                <div className="w-10 h-10 rounded-lg bg-brand-subtle flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-text-primary leading-tight">{cat.name}</p>
-                  <p className="text-xs text-text-muted mt-0.5">{cat.serviceCount} services</p>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+                <Link
+                  to={`/services?categoryId=${cat.id}`}
+                  className="group flex flex-col items-center gap-2.5 p-4 bg-surface-2 border border-border rounded-xl hover:border-brand/40 hover:bg-surface-3 transition-all duration-200 text-center"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-brand-subtle flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <svg className="w-5 h-5 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-text-primary leading-tight">{cat.name}</p>
+                    <p className="text-xs text-text-muted mt-0.5">{cat.serviceCount} services</p>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Top Services */}
@@ -212,6 +179,13 @@ export function HomePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {Array.from({ length: 8 }).map((_, i) => <ServiceCardSkeleton key={i} />)}
           </div>
+        ) : error ? (
+          <StatePanel
+            tone="error"
+            title="Top services could not be loaded"
+            description="Refresh the highlights to continue comparing top-rated offers and storefronts."
+            action={<button onClick={loadHighlights} className="text-sm font-medium text-brand hover:text-brand-hover">Refresh highlights</button>}
+          />
         ) : topServices.length === 0 ? (
           <div className="text-center py-20 text-text-muted">
             <p>No services available yet. Check back soon!</p>
@@ -225,7 +199,9 @@ export function HomePage() {
             variants={stagger}
           >
             {topServices.map((s) => (
-              <ServiceCard key={s.id} service={s} />
+              <motion.div key={s.id} variants={fadeUp}>
+                <MarketplaceServiceCard service={s} compact />
+              </motion.div>
             ))}
           </motion.div>
         )}

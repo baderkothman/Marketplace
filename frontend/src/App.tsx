@@ -9,8 +9,10 @@ import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { CustomerDashboard } from './pages/customer/CustomerDashboard'
 import { HomePage } from './pages/public/HomePage'
+import { SavedServicesPage } from './pages/public/SavedServicesPage'
 import { ServiceDetailPage } from './pages/public/ServiceDetailPage'
 import { ServicesPage } from './pages/public/ServicesPage'
+import { VendorStorefrontPage } from './pages/public/VendorStorefrontPage'
 import { VendorDashboard } from './pages/vendor/VendorDashboard'
 
 function PageWrapper({ children }: { children: React.ReactNode }) {
@@ -63,6 +65,8 @@ export default function App() {
               <Route path="/" element={<PageWrapper><HomePage /></PageWrapper>} />
               <Route path="/services" element={<PageWrapper><ServicesPage /></PageWrapper>} />
               <Route path="/services/:id" element={<PageWrapper><ServiceDetailPage /></PageWrapper>} />
+              <Route path="/vendors/:vendorId" element={<PageWrapper><VendorStorefrontPage /></PageWrapper>} />
+              <Route path="/saved" element={<PageWrapper><SavedServicesPage /></PageWrapper>} />
               <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
               <Route path="/register" element={<PageWrapper><RegisterPage /></PageWrapper>} />
 

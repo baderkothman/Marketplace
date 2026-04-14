@@ -21,6 +21,7 @@ public class ServiceDto
     public string VendorId { get; set; } = string.Empty;
     public string VendorName { get; set; } = string.Empty;
     public string? VendorAvatar { get; set; }
+    public string? VendorBio { get; set; }
 
     public List<string> ImageUrls { get; set; } = new();
 }

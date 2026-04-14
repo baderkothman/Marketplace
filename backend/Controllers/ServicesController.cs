@@ -175,6 +175,7 @@ public class ServicesController : ControllerBase
         VendorId = s.VendorId,
         VendorName = s.Vendor?.FullName ?? "",
         VendorAvatar = s.Vendor?.AvatarUrl,
+        VendorBio = s.Vendor?.Bio,
         ImageUrls = s.Images.OrderByDescending(i => i.IsPrimary).Select(i => i.Url).ToList()
     };
 }

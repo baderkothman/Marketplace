@@ -52,6 +52,7 @@ export interface Service {
   vendorId: string
   vendorName: string
   vendorAvatar?: string
+  vendorBio?: string
   imageUrls: string[]
 }
 
@@ -81,7 +82,7 @@ export interface ServiceQueryParams {
   categoryId?: number
   minPrice?: number
   maxPrice?: number
-  sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'rating'
+  sortBy?: 'relevance' | 'newest' | 'price_asc' | 'price_desc' | 'rating' | 'fastest_delivery'
 }
 
 // ── Order ─────────────────────────────────────────────────────────────────────
@@ -161,6 +162,57 @@ export interface VendorStats {
   completedOrders: number
   totalEarnings: number
   averageRating: number
+}
+
+export interface ServicePackage {
+  id: 'basic' | 'standard' | 'premium'
+  name: string
+  description: string
+  price: number
+  deliveryDays: number
+  revisions: number | 'Unlimited'
+  features: string[]
+  recommended?: boolean
+}
+
+export interface ServiceFaq {
+  question: string
+  answer: string
+}
+
+export interface VendorStorefrontData {
+  vendorId: string
+  name: string
+  avatar?: string
+  bio: string
+  headline: string
+  averageRating: number
+  totalReviews: number
+  totalOrders: number
+  completedOrders: number
+  responseTime: string
+  repeatClientRate: string
+  specialties: string[]
+  badges: string[]
+  portfolio: string[]
+  featuredServices: Service[]
+}
+
+export interface OrderTimelineStep {
+  key: string
+  label: string
+  description: string
+  status: 'complete' | 'current' | 'upcoming'
+  timestamp?: string
+}
+
+export interface ProductNotification {
+  id: string
+  title: string
+  body: string
+  createdAt: string
+  tone: 'info' | 'success' | 'warning'
+  orderId?: number
 }
 
 // ── Admin Stats ───────────────────────────────────────────────────────────────

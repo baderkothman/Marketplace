@@ -57,6 +57,7 @@ const icons = {
 
 const customerLinks: NavItem[] = [
   { to: '/customer', label: 'My Orders', icon: icons.orders },
+  { to: '/customer/saved', label: 'Saved Services', icon: icons.services },
 ]
 
 const vendorLinks: NavItem[] = [

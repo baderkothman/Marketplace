@@ -2,10 +2,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useFavorites } from '../../hooks/useFavorites'
 import { Button } from '../ui/Button'
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
+  const { favoritesCount } = useFavorites()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -23,6 +25,12 @@ export function Navbar() {
     setDropdownOpen(false)
   }
 
+  const savedPath = user?.role === 'Customer' ? '/customer/saved' : '/saved'
+  const navItems = [
+    { to: '/services', label: 'Browse Services' },
+    { to: savedPath, label: 'Saved', count: favoritesCount },
+  ]
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-surface-0/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center h-16 gap-4">
@@ -38,15 +46,13 @@ export function Navbar() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1 flex-1">
-          {[
-            { to: '/services', label: 'Browse Services' },
-          ].map(({ to, label }) => (
+          {navItems.map(({ to, label, count }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
                 [
-                  'px-3 py-1.5 text-sm rounded-md transition-colors',
+                  'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors',
                   isActive
                     ? 'bg-surface-3 text-text-primary'
                     : 'text-text-secondary hover:text-text-primary hover:bg-surface-2',
@@ -54,6 +60,11 @@ export function Navbar() {
               }
             >
               {label}
+              {(count ?? 0) > 0 && (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-brand-subtle px-1.5 py-0.5 text-[11px] font-semibold text-brand">
+                  {count}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -163,6 +174,18 @@ export function Navbar() {
               className="block py-2 text-sm text-text-secondary hover:text-text-primary"
             >
               Browse Services
+            </Link>
+            <Link
+              to={savedPath}
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-between py-2 text-sm text-text-secondary hover:text-text-primary"
+            >
+              <span>Saved</span>
+              {favoritesCount > 0 && (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-brand-subtle px-1.5 py-0.5 text-[11px] font-semibold text-brand">
+                  {favoritesCount}
+                </span>
+              )}
             </Link>
             {isAuthenticated && (
               <Link

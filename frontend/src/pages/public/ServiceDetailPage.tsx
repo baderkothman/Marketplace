@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ordersApi } from '../../api/orders'
 import { reviewsApi } from '../../api/reviews'
 import { servicesApi } from '../../api/services'
@@ -15,6 +15,7 @@ import type { Review, Service } from '../../types'
 export function ServiceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, isAuthenticated } = useAuth()
 
   const [service, setService] = useState<Service | null>(null)
@@ -39,7 +40,10 @@ export function ServiceDetailPage() {
   }, [id])
 
   const handleOrder = async () => {
-    if (!isAuthenticated) { navigate('/login'); return }
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: location } })
+      return
+    }
     if (user?.role !== 'Customer') { setError('Only customers can place orders.'); return }
     setOrdering(true)
     try {
@@ -247,7 +251,10 @@ export function ServiceDetailPage() {
                   size="lg"
                   onClick={() => {
                     setError('')
-                    if (!isAuthenticated) navigate('/login')
+                    if (!isAuthenticated) {
+                      navigate('/login', { state: { from: location } })
+                      return
+                    }
                     else setOrderModal(true)
                   }}
                 >

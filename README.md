@@ -9,9 +9,9 @@ A full-stack marketplace application with a React frontend and ASP.NET Core Web 
 | Layer    | Technology                                    |
 |----------|-----------------------------------------------|
 | Frontend | React 18, Vite, TypeScript, Tailwind CSS, Framer Motion |
-| Backend  | ASP.NET Core 8, Entity Framework Core, SQL Server Express |
+| Backend  | ASP.NET Core 8, Entity Framework Core, SQLite (dev) / SQL Server |
 | Auth     | ASP.NET Identity + JWT                        |
-| Database | SQL Server Express                             |
+| Database | SQLite for local development, optional SQL Server |
 
 ---
 
@@ -29,7 +29,6 @@ Marketplace/
 
 ### Prerequisites
 - .NET 8 SDK
-- SQL Server Express (`localhost\SQLEXPRESS`)
 - EF Core tools: `dotnet tool install --global dotnet-ef`
 
 ### Run the API
@@ -40,20 +39,26 @@ cd backend
 # Restore packages
 dotnet restore
 
-# Apply migrations & seed database
-dotnet ef migrations add InitialCreate
-dotnet ef database update
-
 # Start the API (runs on http://localhost:5000)
 dotnet run
 ```
 
 The seeder automatically creates:
 - Roles: Admin, Vendor, Customer
-- Admin account: `admin@marketplace.com` / `Admin@123`
-- 6 default categories
+- 8 categories with realistic public image URLs
+- 20 vendor accounts
+- 50 customer accounts
+- 60 services
+- A large demo set of orders and reviews
+
+Seeded demo accounts:
+- Admin: `admin@marketplace.com` / `Admin#Serviqo2026!`
+- Vendor: `vendor01@marketplace.com` / `Vendor#Serviqo2026!`
+- Customer: `liam.haddad@marketplace.com` / `Customer#Serviqo2026!`
 
 API docs available at: `http://localhost:5000/swagger`
+
+Development now defaults to a local SQLite file (`backend/marketplace.db`) so the app can start without SQL Server. If you want to use SQL Server instead, set `"DatabaseProvider": "SqlServer"` in `backend/appsettings.json` and update `DefaultConnection`.
 
 ---
 
@@ -88,7 +93,8 @@ The Vite dev server proxies `/api` requests to `http://localhost:5000`.
 
 ### Create accounts
 - Visit `/register` and choose role (Customer or Vendor)
-- Admin is seeded automatically
+- Passwords must be at least 12 characters and include uppercase, lowercase, a number, and a symbol
+- Admin, vendor, and customer demo accounts are seeded automatically
 
 ---
 

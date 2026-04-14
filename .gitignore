@@ -24,4 +24,7 @@ pnpm-debug.log*
 next-env.d.ts
 
 /skills
-.vscode/settings.json
+/.vscode
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal

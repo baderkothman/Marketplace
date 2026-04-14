@@ -13,7 +13,9 @@ import { Modal } from '../../components/ui/Modal'
 import { Select } from '../../components/ui/Select'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { StarRating } from '../../components/ui/StarRating'
-import type { Category, Order, Service, VendorStats } from '../../types'
+import type { Category, CreateServicePayload, Order, Service, UpdateServicePayload, VendorStats } from '../../types'
+
+type ServiceFormData = CreateServicePayload & { isActive: boolean }
 
 // ── Stats Overview ─────────────────────────────────────────────────────────────
 function VendorOverview() {
@@ -69,7 +71,7 @@ function VendorOverview() {
 interface ServiceFormProps {
   initial?: Partial<Service>
   categories: Category[]
-  onSave: (data: Record<string, unknown>) => Promise<void>
+  onSave: (data: ServiceFormData) => Promise<void>
   onCancel: () => void
   loading: boolean
 }
@@ -191,20 +193,21 @@ function VendorServices() {
 
   useEffect(() => { fetchAll() }, [])
 
-  const handleCreate = async (data: Record<string, unknown>) => {
+  const handleCreate = async (data: ServiceFormData) => {
     setSaving(true)
     try {
-      await servicesApi.create(data as Parameters<typeof servicesApi.create>[0])
+      const { isActive: _ignored, ...payload } = data
+      await servicesApi.create(payload)
       setCreateOpen(false)
       fetchAll()
     } finally { setSaving(false) }
   }
 
-  const handleUpdate = async (data: Record<string, unknown>) => {
+  const handleUpdate = async (data: ServiceFormData) => {
     if (!editService) return
     setSaving(true)
     try {
-      await servicesApi.update(editService.id, data as Parameters<typeof servicesApi.update>[1])
+      await servicesApi.update(editService.id, data as UpdateServicePayload)
       setEditService(null)
       fetchAll()
     } finally { setSaving(false) }

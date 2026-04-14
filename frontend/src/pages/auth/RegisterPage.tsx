@@ -5,6 +5,8 @@ import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useAuth } from '../../context/AuthContext'
 
+const strongPasswordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/
+
 export function RegisterPage() {
   const { register } = useAuth()
   const navigate = useNavigate()
@@ -32,22 +34,17 @@ export function RegisterPage() {
       setError('Please fill in all fields.')
       return
     }
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters.')
+    if (!strongPasswordPattern.test(form.password)) {
+      setError('Password must be 12+ characters and include uppercase, lowercase, number, and symbol.')
       return
     }
     setLoading(true)
     try {
       await register(form)
-      const dash = form.role === 'Vendor' ? '/vendor' : '/customer'
-      navigate(dash, { replace: true })
+      navigate(form.role === 'Vendor' ? '/vendor' : '/customer', { replace: true })
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string; errors?: string[] } } }
-      setError(
-        e?.response?.data?.message ??
-        e?.response?.data?.errors?.join(', ') ??
-        'Registration failed.'
-      )
+      setError(e?.response?.data?.message ?? e?.response?.data?.errors?.join(', ') ?? 'Registration failed.')
     } finally {
       setLoading(false)
     }
@@ -55,12 +52,7 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-[calc(100dvh-4rem)] flex items-center justify-center px-4 py-16">
-      <motion.div
-        className="w-full max-w-sm"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-      >
+      <motion.div className="w-full max-w-sm" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand mb-4">
             <svg className="w-5 h-5 text-text-inverse" fill="currentColor" viewBox="0 0 20 20">
@@ -72,7 +64,6 @@ export function RegisterPage() {
         </div>
 
         <div className="bg-surface-2 border border-border rounded-xl p-7 shadow-card">
-          {/* Role toggle */}
           <div className="flex rounded-lg border border-border overflow-hidden mb-6">
             {(['Customer', 'Vendor'] as const).map((role) => (
               <button
@@ -81,9 +72,7 @@ export function RegisterPage() {
                 onClick={() => setForm((f) => ({ ...f, role }))}
                 className={[
                   'flex-1 py-2.5 text-sm font-medium transition-colors',
-                  form.role === role
-                    ? 'bg-brand text-text-inverse'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-3',
+                  form.role === role ? 'bg-brand text-text-inverse' : 'text-text-secondary hover:text-text-primary hover:bg-surface-3',
                 ].join(' ')}
               >
                 {role}
@@ -92,25 +81,8 @@ export function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="Full name"
-              name="fullName"
-              autoComplete="name"
-              value={form.fullName}
-              onChange={handleChange}
-              placeholder="John Doe"
-              required
-            />
-            <Input
-              label="Email address"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="you@example.com"
-              required
-            />
+            <Input label="Full name" name="fullName" autoComplete="name" value={form.fullName} onChange={handleChange} placeholder="John Doe" required />
+            <Input label="Email address" name="email" type="email" autoComplete="email" value={form.email} onChange={handleChange} placeholder="you@example.com" required />
             <Input
               label="Password"
               name="password"
@@ -118,17 +90,13 @@ export function RegisterPage() {
               autoComplete="new-password"
               value={form.password}
               onChange={handleChange}
-              placeholder="At least 6 characters"
-              hint="Minimum 6 characters"
+              placeholder="12+ chars, upper, lower, number, symbol"
+              hint="Minimum 12 characters with uppercase, lowercase, number, and symbol"
               required
             />
 
             {error && (
-              <motion.p
-                className="text-sm text-status-error bg-red-500/8 border border-red-500/20 rounded-md px-3 py-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
+              <motion.p className="text-sm text-status-error bg-red-500/8 border border-red-500/20 rounded-md px-3 py-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 {error}
               </motion.p>
             )}

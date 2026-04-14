@@ -37,13 +37,7 @@ export function LoginPage() {
 
   return (
     <div className="min-h-[calc(100dvh-4rem)] flex items-center justify-center px-4 py-16">
-      <motion.div
-        className="w-full max-w-sm"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-      >
-        {/* Logo mark */}
+      <motion.div className="w-full max-w-sm" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand mb-4">
             <svg className="w-5 h-5 text-text-inverse" fill="currentColor" viewBox="0 0 20 20">
@@ -56,33 +50,11 @@ export function LoginPage() {
 
         <div className="bg-surface-2 border border-border rounded-xl p-7 shadow-card">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              label="Email address"
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="you@example.com"
-              required
-            />
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              required
-            />
+            <Input label="Email address" name="email" type="email" autoComplete="email" value={form.email} onChange={handleChange} placeholder="you@example.com" required />
+            <Input label="Password" name="password" type="password" autoComplete="current-password" value={form.password} onChange={handleChange} placeholder="************" required />
 
             {error && (
-              <motion.p
-                className="text-sm text-status-error bg-red-500/8 border border-red-500/20 rounded-md px-3 py-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-              >
+              <motion.p className="text-sm text-status-error bg-red-500/8 border border-red-500/20 rounded-md px-3 py-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 {error}
               </motion.p>
             )}
@@ -102,8 +74,10 @@ export function LoginPage() {
           </div>
         </div>
 
-        <p className="text-xs text-text-muted text-center mt-5">
-          Demo admin: admin@marketplace.com / Admin@123
+        <p className="text-xs text-text-muted text-center mt-5 leading-5">
+          Demo accounts: admin@marketplace.com / Admin#Serviqo2026!<br />
+          vendor01@marketplace.com / Vendor#Serviqo2026!<br />
+          liam.haddad@marketplace.com / Customer#Serviqo2026!
         </p>
       </motion.div>
     </div>

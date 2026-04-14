@@ -67,6 +67,19 @@ export function ServiceDetailPage() {
     ? catalog.filter((entry) => entry.vendorId === service.vendorId && entry.id !== service.id).slice(0, 3)
     : []
   const faqs = service ? getServiceFaqs(service) : []
+  const canPlaceOrder = !isAuthenticated || user?.role === 'Customer'
+  const orderActionLabel = !isAuthenticated
+    ? 'Sign in to order'
+    : user?.role === 'Customer'
+      ? `Request ${selectedPackage?.name}`
+      : user?.role === 'Vendor'
+        ? 'Switch to a customer account to order'
+        : 'Admins cannot place orders'
+  const orderHint = !isAuthenticated
+    ? 'Sign in with a customer account to place an order and track delivery updates.'
+    : user?.role === 'Customer'
+      ? 'Package prices and revision scope are currently captured in the order brief until dedicated backend package pricing support is added.'
+      : 'Ordering is currently limited to customer accounts. Sign out and continue with a customer account to submit a brief.'
 
   const handleOrder = async () => {
     if (!service || !selectedPackage) return
@@ -285,23 +298,28 @@ export function ServiceDetailPage() {
                 fullWidth
                 size="lg"
                 className="mt-5"
+                disabled={isAuthenticated && !canPlaceOrder}
                 onClick={() => {
                   setOrderError('')
                   if (!isAuthenticated) {
                     navigate('/login', { state: { from: location } })
                     return
                   }
+                  if (!canPlaceOrder) {
+                    setOrderError('Ordering is available only for customer accounts.')
+                    return
+                  }
                   setOrderModal(true)
                 }}
               >
-                {isAuthenticated ? `Request ${selectedPackage?.name}` : 'Sign in to order'}
+                {orderActionLabel}
               </Button>
             ) : (
               <Button fullWidth size="lg" className="mt-5" disabled>Unavailable</Button>
             )}
 
             <p className="mt-3 text-xs leading-relaxed text-text-muted">
-              Package prices and revision scope are currently captured in the order brief until dedicated backend package pricing support is added.
+              {orderHint}
             </p>
           </div>
         </div>
